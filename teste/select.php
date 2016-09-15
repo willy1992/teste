@@ -10,12 +10,11 @@ $linha = $busca->fetchAll(PDO::FETCH_ASSOC);
 var_dump($linha);*/
 
     $busca_tamanhos = $pdo->prepare("SELECT tamanho FROM dados_antigos");
-    $busca_tamanhos->execute();
-    $linha2 = $busca_tamanhos->fetch(PDO::FETCH_ASSOC);
-    var_dump($linha2);
-    foreach ($linha2 as $listar){
-        $param = $listar.tamanho;
-        $insere_tamanhos = $pdo->prepare("INSERT INTO tamanhos (titulo) VALUES($param)");
+    $busca_tamanhos->execute(array(''));
+    while($linha = $busca_tamanhos->fetch(PDO::FETCH_ASSOC)){
+        var_dump($linha
+        $linha['tamanho'] as string($linha);
+        $insere_tamanhos = $pdo->prepare("INSERT INTO tamanhos (titulo) VALUES($linha)");
         $insere_tamanhos->execute();
 
     }
