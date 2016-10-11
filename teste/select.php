@@ -2,60 +2,62 @@
 include_once ("conect.php");
 //conexão com banco
 $pdo = conectar();
-/*busca todos dados antigos a serem migrados
-$busca=$pdo->prepare("SELECT * FROM dados_antigos");
-$busca->execute();
-coloca resultado em um array
-$linha = $busca->fetchAll(PDO::FETCH_ASSOC);
-var_dump($linha);*/
+class
+   public function IncluirTamanhos($pdo, $busca_tamanhos){
+        while ($linha_tamanhos = $busca_tamanhos->fetch(PDO::FETCH_OBJ)) {
+                $verifica_duplicado_tamanhos = $pdo->query("SELECT titulo FROM tamanhos WHERE titulo=$linha_tamanhos->tamanho");
+            if ($verifica_duplicado_tamanhos->rowCount() > 0) {
 
-    $busca_tamanhos = $pdo->prepare("SELECT tamanho FROM dados_antigos");
-    $busca_tamanhos->execute();
-    $busca_tamanhos->setFetchMode(PDO::FETCH_ASSOC);
-    foreach ($busca_tamanhos as $linha_tam){
-        $verifica_duplicado_tam = $pdo->prepare("SELECT titulo FROM tamanhos WHERE titulo=$linha_tam[tamanho]");
-        $verifica_duplicado_tam->execute();
-        if($verifica_duplicado_tam->fetchColumn()!=0){
-            //echo "tamanho=".$linha_tam["tamanho"]."<br />";
-        }else{
-            $id_tamanho += 1;
-            $insere_tamanhos = $pdo->prepare("INSERT INTO tamanhos (titulo, id) VALUES($linha_tam[tamanho],$id_tamanho)");
-            $insere_tamanhos->execute();
+            }else{
+                $insere_tamanhos = $pdo->prepare("INSERT INTO tamanhos (titulo) VALUES(?)");
+                $insere_tamanhos->bindParam(1, $linha_tamanhos->tamanho, PDO::PARAM_INT);
+                $insere_tamanhos->execute();
+                return;
         }
     }
-    $busca_cor = $pdo->prepare("SELECT cor FROM dados_antigos");
-    $busca_cor->execute();
-    $busca_cor->setFetchMode(PDO::FETCH_ASSOC);
-    foreach ($busca_cor as $linha_cor){
-
-        $verifica_duplicado_cor = $pdo->prepare("SELECT titulo FROM cores WHERE titulo='$linha_cor[cor]'");
-        $verifica_duplicado_cor->execute();
-        if($verifica_duplicado_cor->rowCount() > 0){
-            //echo "cor=".$linha_cor["cor"]."<br />";
-        }else{
-        $id_cor += 1;
-        $insere_cor = $pdo->prepare("INSERT INTO cores (titulo, id) VALUES('$linha_cor[cor]',$id_cor)");
-        $insere_cor->execute();
-         }
+}
+    public function Incluir_cores($pdo, $busca_cor){
+            while ($linha_cor = $busca_cor->fetch(PDO::FETCH_OBJ)){
+                   $verifica_duplicado_cor = $pdo->query("SELECT titulo FROM cores WHERE titulo='$linha_cor->cor'");
+                if ($verifica_duplicado_cor->rowCount() > 0){
+                    echo "cor=" . $linha_cor->cor . "<br />";
+                }else {
+                    $insere_cor = $pdo->prepare("INSERT INTO cores (titulo) VALUES(?)");
+                    $insere_cor->bindParam(1, $linha_cor->cor, PDO::PARAM_STR);
+                    $insere_cor->execute();
+        }
     }
-    $busca_produto = $pdo->prepare("SELECT codigo, titulo, cor, tamanho FROM dados_antigos");
-    $busca_produto->execute();
-    $busca_produto->setFetchMode(PDO::FETCH_ASSOC);
-    foreach ($busca_produto as $linha_produto) {
-        $id_produto += 1;
-        $id_produto_cores += 1;
-        $id_produto_tamanhos += 1;
-        $busca_id_cor = $pdo->query("SELECT id FROM cores WHERE titulo='$linha_produto[cor]'");
-        $result = $busca_id_cor->fetch(PDO::FETCH_ASSOC);
-        $busca_id_tamanho = $pdo->query("SELECT id FROM tamanhos WHERE titulo=$linha_produto[tamanho]");
-        $result3 = $busca_id_tamanho->fetch(PDO::FETCH_ASSOC);
-        $insere_produto = $pdo->prepare("INSERT INTO produtos (codigo, titulo, id) VALUES($linha_produto[codigo], '$linha_produto[titulo]', $id_produto)");
+}
+
+    $busca_produto = $pdo->query("SELECT codigo, titulo, cor, tamanho FROM dados_antigos");
+    while($linha_produto = $busca_produto->fetch(PDO::FETCH_OBJ)) {
+
+        $busca_id_cor = $pdo->query("SELECT id FROM cores WHERE titulo='$linha_produto->cor'");
+        $resultado_id_cor = $busca_id_cor->fetch(PDO::FETCH_OBJ);
+        //echo "ID_COR=" . "$resultado_id_cor->id" . "<br />";
+
+        $busca_id_tamanho = $pdo->query("SELECT id FROM tamanhos WHERE titulo=$linha_produto->tamanho");
+        $resultado_id_tamanho = $busca_id_tamanho->fetch(PDO::FETCH_OBJ);
+        //echo "ID_TAMANHO=" . "$resultado_id_tamanho->id" . "<br />";
+
+        $insere_produto = $pdo->prepare("INSERT INTO produtos (codigo, titulo) VALUES(?,?)");
+        $insere_produto->bindParam(1, $linha_produto->codigo, PDO::PARAM_INT);
+        $insere_produto->bindParam(2, $linha_produto->titulo, PDO::PARAM_STR);
         $insere_produto->execute();
-        $busca_produto_cores = $pdo->query("SELECT id FROM produtos WHERE id=$id_produto");
-        $result2 = $busca_produto_cores->fetch(PDO::FETCH_ASSOC);
-        $insere_produto_cores = $pdo->prepare("INSERT INTO produtos_cores (id, id_cor, id_produto) VALUES($id_produto_cores, $result[id], $result2[id])");
+
+        $last_id = $pdo->lastInsertId();
+        $busca_produto_cores = $pdo->query("SELECT id FROM produtos WHERE id=$last_id");
+        $resultado_last_id = $busca_produto_cores->fetch(PDO::FETCH_OBJ);
+        //echo "LAST_ID=" . "$resultado_last_id->id" . "<br />";
+
+        $insere_produto_cores = $pdo->prepare("INSERT INTO produtos_cores (id_cor, id_produto) VALUES(?,?)");
+        $insere_produto_cores->bindParam(1, $resultado_id_cor->id, PDO::PARAM_INT);
+        $insere_produto_cores->bindParam(2, $resultado_last_id->id, PDO::PARAM_INT);
         $insere_produto_cores->execute();
-        $insere_produtos_tamanhos = $pdo->prepare("INSERT INTO produtos_tamanhos (id, id_produto_cor, id_tamanho) VALUES ($id_produto_tamanhos, $result[id], $result3[id])");
+
+        $insere_produtos_tamanhos = $pdo->prepare("INSERT INTO produtos_tamanhos (id_produto_cor, id_tamanho) VALUES (?,?)");
+        $insere_produtos_tamanhos->bindParam(1, $resultado_id_cor->id, PDO::PARAM_INT);
+        $insere_produtos_tamanhos->bindParam(2, $resultado_id_tamanho->id, PDO::PARAM_INT);
         $insere_produtos_tamanhos->execute();
     }
 
@@ -100,4 +102,13 @@ var_dump($linha);*/
 while($linha=$busca->fetch(PDO::FETCH_ASSOC)){
     echo "nome=".$linha["nome"]."<br />";
 }
+
+
+/*busca todos dados antigos a serem migrados
+$busca=$pdo->prepare("SELECT * FROM dados_antigos");
+$busca->execute();
+coloca resultado em um array
+$linha = $busca->fetchAll(PDO::FETCH_ASSOC);
+var_dump($linha);*/
+
 */
