@@ -1,3 +1,9 @@
 <?php
-$busca_tamanhos = $pdo->query("SELECT tamanho FROM dados_antigos");
-$busca_cor = $pdo->query("SELECT cor FROM dados_antigos");
+include("conect.php");
+include("select.php");
+
+$pdo = conectar();
+$result = $pdo;
+var_dump($result);
+incluirTamanhos($result);
+incluirCores($result);
